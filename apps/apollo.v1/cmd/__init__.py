@@ -31,7 +31,7 @@ def get_cmd_function_name(name):
 
 def get_module(name):
     """Imports the module for a particular command name and returns it."""
-    module_name = "%s.%s" % (__name__, name)
+    module_name = f"{__name__}.{name}"
     module = __import__(
         module_name, fromlist=[name, SETUP_PARSER, DESCRIPTION],
         level=0)

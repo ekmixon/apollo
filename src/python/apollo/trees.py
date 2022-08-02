@@ -89,7 +89,7 @@ def generateRegressionTree(log, data,
             .groupby(["region_name_id"], as_index=False, sort=True)\
             .first()
 
-    log(3, "Sorting, grouping, and pruning data.shape(" + str(data.shape) + ")")
+    log(3, f"Sorting, grouping, and pruning data.shape({str(data.shape)})")
     grp_data = data # Grouping is done in SQL for now.
 
     # Drop "step" because that's going to be asymptotically increasing as
@@ -98,7 +98,7 @@ def generateRegressionTree(log, data,
     drop_fields = ["region_name", "region_name_id", "time_avg", "step"]
 
     feature_names = [f for f in grp_data.columns if f not in drop_fields]
-    log(9, "Feature names: " + str(feature_names))
+    log(9, f"Feature names: {feature_names}")
     log(9, "Creating a vector for regional data and models ...")
 
     model_count = 0
@@ -107,7 +107,7 @@ def generateRegressionTree(log, data,
     overall_start = time.time()
 
     log(2, "Training regression tree...")
-    log(3, "Feature names: " + str(feature_names))
+    log(3, f"Feature names: {feature_names}")
     for region in region_names:
         model_count += 1
         this_start = time.time()
@@ -119,14 +119,14 @@ def generateRegressionTree(log, data,
             rd = grp_data[grp_data['region_name'] == region]
 
         if (rd.shape[0] < 1):
-            log(4, "Region " + str(region) + " had no data.")
+            log(4, f"Region {str(region)} had no data.")
             continue
 
         print("")
         print("======================")
-        print("--debug: region_name   = %s" % str(region))
-        print("--debug: feature_names = %s" % str(feature_names))
-        print("--debug: rd[]          = %s" % str(rd))
+        print(f"--debug: region_name   = {str(region)}")
+        print(f"--debug: feature_names = {feature_names}")
+        print(f"--debug: rd[]          = {str(rd)}")
         print("----------------------")
 
         y = rd.time_avg
@@ -136,7 +136,7 @@ def generateRegressionTree(log, data,
 
         reg.fit(x, y)
 
-        with open("./output/models/rtree_latest/%s.dot" % region, "w") as dotfile:
+        with open(f"./output/models/rtree_latest/{region}.dot", "w") as dotfile:
             from sklearn import tree as _tree
             _tree.export_graphviz(reg, out_file=dotfile, feature_names=feature_names)
 
@@ -149,7 +149,11 @@ def generateRegressionTree(log, data,
             break
 
     overall_elapsed = time.time() - overall_start
-    log(2, "Done. Fit " + str(model_count) + " models in " + str(overall_elapsed) + " seconds.")
+    log(
+        2,
+        f"Done. Fit {str(model_count)} models in {str(overall_elapsed)} seconds.",
+    )
+
 
     return all_skl_models
 
@@ -225,7 +229,7 @@ def generateDecisionTree(log, data,
     # NOTE: How to create a column of binned values for a column:
     #data["op_count_binned"] = pd.qcut(data["op_count"].astype(float), 50, duplicates="drop")
 
-    log(3, "Sorting, grouping, and pruning data.shape(" + str(data.shape) + ")")
+    log(3, f"Sorting, grouping, and pruning data.shape({str(data.shape)})")
 
     #
     #  NOTE: We feed in previously-grouped data, we don't do the aggregation here.
@@ -258,7 +262,7 @@ def generateDecisionTree(log, data,
     drop_fields = ["region_name", "region_name_id", "policy_index", "time_avg", "step"]
 
     feature_names = [f for f in grp_data.columns if f not in drop_fields]
-    log(9, "Feature names: " + str(feature_names))
+    log(9, f"Feature names: {feature_names}")
     log(9, "Creating a vector for regional data and models ...")
 
     model_count = 0
@@ -345,7 +349,11 @@ def generateDecisionTree(log, data,
             break
 
     overall_elapsed = time.time() - overall_start
-    log(2, "Done. Fit " + str(model_count) + " models in " + str(overall_elapsed) + " seconds.")
+    log(
+        2,
+        f"Done. Fit {str(model_count)} models in {str(overall_elapsed)} seconds.",
+    )
+
 
     json_start = time.time()
 
@@ -365,6 +373,13 @@ def generateDecisionTree(log, data,
                     "names": feature_names,
                     },
                 }
+        model_def["region_names"].append("__ANY_REGION__")
+        model_def["region_sizes"]["__ANY_REGION__"] = "(0, 0)"
+        model_def["region_types"]["__ANY_REGION__"] = "Static"
+        model_def["driver"]["rules"]["__ANY_REGION__"] = "0"
+        model_def["driver"]["least"]["__ANY_REGION__"] = -1
+        model_def["driver"]["timed"]["__ANY_REGION__"] = True
+
     else:
         model_def = {
                 "guid": assign_guid,
@@ -383,22 +398,9 @@ def generateDecisionTree(log, data,
                 }
 
 
-    #IDEA: Create bins of regions. If some region doesn't have a model, figure out what bin
-    #      its actual runtimes placed it in and give it a model from some other region in that
-    #      bin... (this is problematic, just an idea)
-
-    # Add in a default model (Static, OMP defaults) for any unnamed region:
-    if one_big_tree == False:
-        model_def["region_names"].append("__ANY_REGION__")
-        model_def["region_sizes"]["__ANY_REGION__"] = "(0, 0)"
-        model_def["region_types"]["__ANY_REGION__"] = "Static"
-        model_def["driver"]["rules"]["__ANY_REGION__"] = "0"
-        model_def["driver"]["least"]["__ANY_REGION__"] = -1
-        model_def["driver"]["timed"]["__ANY_REGION__"] = True
-
     model_as_json = json.dumps(model_def, sort_keys=False, indent=4, ensure_ascii=True, default=Obj2NativeTypes) + "\n"
     json_elapsed = time.time() - json_start
-    log(3, "Serializing models into JSON took " + str(json_elapsed) + " seconds.")
+    log(3, f"Serializing models into JSON took {str(json_elapsed)} seconds.")
 
     return model_as_json, all_skl_models
 
@@ -422,25 +424,26 @@ def tree_to_data(decision_tree, feature_names=None, name_swap=None, y=None):
                 "value": list(value),
                 "class": int(decision_tree.classes_[np.argmax(value)])
             }
+        feature = (
+            feature_names[tree.feature[node_id]]
+            if feature_names is not None
+            else tree.feature[node_id]
+        )
+
+        if "=" in feature:
+            ruleType = "="
+            ruleValue = "false"
         else:
-            if feature_names is not None:
-                feature = feature_names[tree.feature[node_id]]
-            else:
-                feature = tree.feature[node_id]
+            ruleType = "<="
+            ruleValue = "%.4f" % tree.threshold[node_id]
 
-            if "=" in feature:
-                ruleType = "="
-                ruleValue = "false"
-            else:
-                ruleType = "<="
-                ruleValue = "%.4f" % tree.threshold[node_id]
+        return {
+            "id": node_id,
+            "rule": f"{feature} {ruleType} {ruleValue}",
+            criterion: tree.impurity[node_id],
+            "samples": tree.n_node_samples[node_id],
+        }
 
-            return {
-                "id": node_id,
-                "rule": "%s %s %s" % (feature, ruleType, ruleValue),
-                criterion: tree.impurity[node_id],
-                "samples": tree.n_node_samples[node_id],
-            }
 
     def recurse(tree, node_id, criterion, parent=None, depth=0):
         left_child = tree.children_left[node_id]
@@ -483,22 +486,20 @@ def tree_to_simple_str(decision_tree, feature_names=None, name_swap=None, y=None
             return {
                 "policy": decision_tree.classes_[np.argmax(value)]
             }
+        feature = (
+            feature_names[tree.feature[node_id]]
+            if feature_names is not None
+            else tree.feature[node_id]
+        )
+
+        if "=" in feature:
+            ruleType = "="
+            ruleValue = "false"
         else:
-            if feature_names is not None:
-                feature = feature_names[tree.feature[node_id]]
-            else:
-                feature = tree.feature[node_id]
+            ruleType = "<="
+            ruleValue = "%.4f" % tree.threshold[node_id]
 
-            if "=" in feature:
-                ruleType = "="
-                ruleValue = "false"
-            else:
-                ruleType = "<="
-                ruleValue = "%.4f" % tree.threshold[node_id]
-
-            return {
-                "rule": "%s %s %s" % (feature, ruleType, ruleValue),
-            }
+        return {"rule": f"{feature} {ruleType} {ruleValue}"}
 
     def recurse(tree, node_id, criterion, parent=None, depth=0):
         left_child = tree.children_left[node_id]

@@ -53,47 +53,42 @@ def generateRegressionTree(data, region_names):
             "t_op_avg",
             "t_total"
         ] 
-    
+
     y = data["t_total"].astype(float)
     x = data.drop(drop_fields, axis="columns").values.astype(float)
 
     pol_stds = data.groupby(["policy_index"], as_index=False)\
         [["t_total"]].apply(np.std)
 
-    print str(pol_stds)
+    # Make a numeric representation of loop name strings:
+    data["loop"] = pd.Categorical(data["loop"])
     quit()
 
-    feature_names = []
     raw_names = data.drop(drop_fields, axis="columns").columns
-    for name in raw_names:
-        feature_names.append(name)
-
+    feature_names = list(raw_names)
     predictedTime = DecisionTreeRegressor()
     predictedTime.fit(x, y)
 
-    #leafStdDev = np.std(y)
-
-    print str(predictedTime)
-    print "predictions table:"
+    # Make a numeric representation of loop name strings:
+    data["loop"] = pd.Categorical(data["loop"])
+    # Make a numeric representation of loop name strings:
+    data["loop"] = pd.Categorical(data["loop"])
     comp = ""
     for row in x:
         for column in row:
-            comp += ("[" + str(int(column)) + "]")
-        comp += (" == " + str(predictedTime.predict(row.reshape(1, -1))))
+            comp += f"[{int(column)}]"
+        comp += f" == {str(predictedTime.predict(row.reshape(1, -1)))}"
         #comp += (" @ " + str(leafStdDev))
         #comp += (" @ " + str(pol_stds[row["policy_index"]))
         comp += "\n"
-    print comp
-
-    dotfile = open("regress.dot", 'w')
-    from sklearn import tree as _tree
-    _tree.export_graphviz(predictedTime, out_file=dotfile, feature_names=feature_names)
-    dotfile.close()
-
+    # Make a numeric representation of loop name strings:
+    data["loop"] = pd.Categorical(data["loop"])
+    with open("regress.dot", 'w') as dotfile:
+        from sklearn import tree as _tree
+        _tree.export_graphviz(predictedTime, out_file=dotfile, feature_names=feature_names)
     reg_tree = json.dumps(serializeRegressor(predictedTime))
-    regfile = open("regress.json", 'w')
-    regfile.write(reg_tree)
-    regfile.close()
+    with open("regress.json", 'w') as regfile:
+        regfile.write(reg_tree)
     return reg_tree
 
 
@@ -332,8 +327,8 @@ def tablePrint(results):
 
 def wipeTrainingData(sos_host, sos_port, prior_frame_max):
     sql_string =  "DELETE FROM tblVals "
-    sql_string += "WHERE tblVals.frame < " + str(prior_frame_max) + ";"
-    region_names, col_names = SOS.query(sql_string, sos_host, sos_port) 
+    sql_string += f"WHERE tblVals.frame < {str(prior_frame_max)};"
+    region_names, col_names = SOS.query(sql_string, sos_host, sos_port)
     return
 
 
@@ -417,45 +412,35 @@ def getTrainingData(sos_host, sos_port, row_limit):
 
 def generateRandomModel(data, region_names):
 
-    model_def = {} 
-    model_def['type'] = {}
-    model_def['type']['guid'] = SOS.get_guid() 
+    model_def = {'type': {}}
+    model_def['type']['guid'] = SOS.get_guid()
     model_def['type']['name'] = "Random"
     model_def['region_names'] = []
     for n in region_names:
         for nm in n:
             model_def['region_names'].append(nm)
-    model_def['features'] = {}
-    model_def['features']['count'] = 0
-    model_def['features']['names'] = [] 
-    model_def['driver'] = {}
-    model_def['driver']['format'] = "int"
-    model_def['driver']['rules'] = "1" 
-    
-    model_as_json = json.dumps(model_def, sort_keys=False, indent=4,
-            ensure_ascii=True) + "\n"
-    return model_as_json
+    model_def['features'] = {'count': 0, 'names': []}
+    model_def['driver'] = {'format': "int", 'rules': "1"}
+    return (
+        json.dumps(model_def, sort_keys=False, indent=4, ensure_ascii=True)
+        + "\n"
+    )
 
 def generateStaticModel(data, region_names):
 
-    model_def = {} 
-    model_def['type'] = {}
+    model_def = {'type': {}}
     model_def['type']['guid'] = SOS.get_guid()
     model_def['type']['name'] = "Static"
     model_def['region_names'] = []
     for n in region_names:
         for nm in n:
             model_def['region_names'].append(nm)
-    model_def['features'] = {}
-    model_def['features']['count'] = 0
-    model_def['features']['names'] = [] 
-    model_def['driver'] = {}
-    model_def['driver']['format'] = "int"
-    model_def['driver']['rules'] = "1" 
-    
-    model_as_json = json.dumps(model_def, sort_keys=False, indent=4,
-            ensure_ascii=True) + "\n"
-    return model_as_json
+    model_def['features'] = {'count': 0, 'names': []}
+    model_def['driver'] = {'format': "int", 'rules': "1"}
+    return (
+        json.dumps(model_def, sort_keys=False, indent=4, ensure_ascii=True)
+        + "\n"
+    )
 
 #########
 
@@ -466,28 +451,27 @@ from sklearn.tree import _tree
 def progressBar(amount, total, length, fill='='):
     if amount >= total:
         return fill * length
-    if length < 4: length = 4
+    length = max(length, 4)
     fillLen = int(length * amount // total)
     emptyLen = length - 1 - fillLen
-    bar = (fill * fillLen) + ">" + ("-" * emptyLen)
-    return bar
+    return (fill * fillLen) + ">" + ("-" * emptyLen)
 
 
 def tree_to_json(decision_tree, feature_names=None):
     from warnings import warn
- 
+
     js = ""
- 
+
     def node_to_str(tree, node_id, criterion):
         if not isinstance(criterion, skl.tree.tree.six.string_types):
             criterion = "impurity"
- 
+
         value = tree.value[node_id]
         if tree.n_outputs == 1:
             value = value[0, :]
- 
+
         jsonValue = ', '.join([str(x) for x in value])
- 
+
         if tree.children_left[node_id] == skl.tree._tree.TREE_LEAF:
             return '"id": "%s", "criterion": "%s", "impurity": "%s", "samples": "%s", "value": [%s]' \
                          % (node_id, 
@@ -495,39 +479,39 @@ def tree_to_json(decision_tree, feature_names=None):
                                 tree.impurity[node_id],
                                 tree.n_node_samples[node_id],
                                 jsonValue)
+        feature = (
+            feature_names[tree.feature[node_id]]
+            if feature_names is not None
+            else tree.feature[node_id]
+        )
+
+        if "=" in feature:
+            ruleType = "="
+            ruleValue = "false"
         else:
-            if feature_names is not None:
-                feature = feature_names[tree.feature[node_id]]
-            else:
-                feature = tree.feature[node_id]
- 
-            if "=" in feature:
-                ruleType = "="
-                ruleValue = "false"
-            else:
-                ruleType = "<="
-                ruleValue = "%.4f" % tree.threshold[node_id]
- 
-            return '"id": "%s", "rule": "%s %s %s", "%s": "%s", "samples": "%s"' \
-                         % (node_id, 
-                                feature,
-                                ruleType,
-                                ruleValue,
-                                criterion,
-                                tree.impurity[node_id],
-                                tree.n_node_samples[node_id])
- 
+            ruleType = "<="
+            ruleValue = "%.4f" % tree.threshold[node_id]
+
+        return '"id": "%s", "rule": "%s %s %s", "%s": "%s", "samples": "%s"' \
+                     % (node_id, 
+                            feature,
+                            ruleType,
+                            ruleValue,
+                            criterion,
+                            tree.impurity[node_id],
+                            tree.n_node_samples[node_id])
+
     def recurse(tree, node_id, criterion, parent=None, depth=0):
         tabs = "    " * depth
         js = ""
- 
+
         left_child = tree.children_left[node_id]
         right_child = tree.children_right[node_id]
- 
+
         js = js + "\n" + \
                  tabs + "{\n" + \
                  tabs + "    " + node_to_str(tree, node_id, criterion)
- 
+
         if left_child != skl.tree._tree.TREE_LEAF:
             js = js + ",\n" + \
                      tabs + '    "left": ' + \
@@ -542,17 +526,17 @@ def tree_to_json(decision_tree, feature_names=None):
                                      criterion=criterion, \
                                      parent=node_id,
                                      depth=depth + 1)
- 
+
         js = js + tabs + "\n" + \
                  tabs + "}"
- 
+
         return js
- 
+
     if isinstance(decision_tree, skl.tree.tree.Tree):
-        js = js + recurse(decision_tree, 0, criterion="impurity")
+        js += recurse(decision_tree, 0, criterion="impurity")
     else:
         js = js + recurse(decision_tree.tree_, 0, criterion=decision_tree.criterion)
- 
+
     return js
 
 
@@ -625,10 +609,13 @@ def _byteify(data, ignore_dicts = False):
     # if this is a dictionary, return dictionary of byteified keys and values
     # but only if we haven't already byteified it
     if isinstance(data, dict) and not ignore_dicts:
-        return dict((_byteify(key,
-            ignore_dicts=True),
-            _byteify(value, ignore_dicts=True)) \
-                for key, value in data.iteritems())
+        return {
+            _byteify(key, ignore_dicts=True): _byteify(
+                value, ignore_dicts=True
+            )
+            for key, value in data.iteritems()
+        }
+
     # if it's anything else, return it in its original form
     return data
 

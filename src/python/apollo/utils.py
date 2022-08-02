@@ -52,10 +52,9 @@ def tablePrint(results):
 def progressBar(amount, total, length, fill='='):
     if amount >= total:
         return fill * length
-    if length < 4: length = 4
+    length = max(length, 4)
     fillLen = int(length * amount // total)
     emptyLen = length - 1 - fillLen
-    bar = (fill * fillLen) + ">" + ("-" * emptyLen)
-    return bar
+    return (fill * fillLen) + ">" + ("-" * emptyLen)
 
 

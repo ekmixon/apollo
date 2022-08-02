@@ -87,55 +87,8 @@ def main():
         with open(("./output/models/step.%d.region_names.pickle" % prior_frame_max), "wb") as f:
             pickle.dump(region_names, f)
         print("Pickled step ",prior_frame_max) # ggout
-        continue; # ggout
-
-        # Model: DecisionTree
-        dtree_def, dtree_skl = trees.generateDecisionTree(log, data,
-                assign_guid=dataset_guid,
-                tree_max_depth=3,
-                one_big_tree=False)
-        dtree_len = len(dtree_def)
-
-        if (dtree_len < 1): 
-            log(0, "No models generated for step %d." % prior_frame_max)
-        else:
-            with open(("./output/models/step.%d.model.json" % prior_frame_max), "w") as f:
-               f.write(dtree_def)
-
-        if True:#prev_dtree_def == None or prev_dtree_def != dtree_def:
-            prev_dtree_def = dtree_def
-            #SOS.trigger("APOLLO_MODELS", dtree_len, dtree_def)
-            triggers += 1
-            print("===> Trigger ", triggers, " because models differ", flush=True) # ggout
-
-        # Model: RegressionTree
-        #rtree_skl = trees.generateRegressionTree(log, data,
-        #        assign_guid=dataset_guid,
-        #        tree_max_depth=3,
-        #        one_big_tree=False)
-
-        # TODO(chad): Add NN models / streaming models here
-
-        # TODO(chad): Drop models into an arena to fight, and only send models
-        #             out when they are better than some prior model for any
-        #             given loop. Could use async queues for analysis and for
-        #             model distribution.
-
-        if dtree_len > 0:
-            if (ONCE_THEN_EXIT):
-                controller_elapsed = time.time() - controller_start
-                log(1, "Done.  Full cycle of controller took "
-                       + str(controller_elapsed) + "seconds.")
-                return
-        else:
-            if (VERBOSE):
-                log(1, "NOTICE: Model was not generated, nothing to send.")
-            if (ONCE_THEN_EXIT):
-                log(1, "Done.")
-                return
-
-        step += 1
-        ##### return to top of loop until shut down #####
+        continue
+            ##### return to top of loop until shut down #####
 
 
     ########## end of controller.py  ##########

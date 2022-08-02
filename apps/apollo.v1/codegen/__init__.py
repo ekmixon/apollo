@@ -57,8 +57,6 @@ class CodeGenerator(object):
             if f in instruction_names:
                 if not self.instruction_map_line:
                     self.model += "auto instruction_map = kavalier::KavalierStatistician::getManager().getInstructionCounts(Dyninst::Address(func), *static_cast<uint64_t *>(func));"
-                else:
-                    pass
             elif f == 'true':
                 pass
             else:
@@ -68,13 +66,19 @@ class CodeGenerator(object):
             spacer = spacer_base * depth
             if (threshold[node] != -2):
                 if 'loop_id' in features[node]:
-                     self.model += features[node] + ' ' + threshold[node] + '\n'
-                    #print spacer + "if ( " + features[node].replace(' ', '_') + " == " + loop_id_labels.classes_[str(threshold[node])] + " ) {"
+                    self.model += f'{features[node]} {threshold[node]}' + '\n'
                 else:
                     if features[node] in instruction_names:
                         self.model += spacer + 'if ( instruction_map["' +features[node].replace(' ', '_') + '"] <= ' + str(threshold[node]) + " ) {\n"
                     else:
-                        self.model += spacer + "if ( " + features[node].replace(' ', '_') + " <= " + str(threshold[node]) + " ) {\n"
+                        self.model += (
+                            f"{spacer}if ( "
+                            + features[node].replace(' ', '_')
+                            + " <= "
+                            + str(threshold[node])
+                            + " ) {\n"
+                        )
+
 
                 if left[node] != -1:
                         recurse(left, right, threshold, features,
@@ -90,11 +94,11 @@ class CodeGenerator(object):
                 target_name = target_names[max_target]
 
                 if 'policy' in self.kind:
-                    self.model += spacer + "p.policy = RAJA::apollo::" + target_name + ';\n'
+                    self.model += f"{spacer}p.policy = RAJA::apollo::{target_name}" + ';\n'
                 elif 'chunk' in self.kind:
-                    self.model += spacer + "p.chunk_size = " + str(target_name) + ';\n'
+                    self.model += f"{spacer}p.chunk_size = {str(target_name)}" + ';\n'
                 elif 'dynamic' in self.kind:
-                    self.model += spacer + "p.dynamic_fraction = " + str(target_name) + ';\n'
+                    self.model += f"{spacer}p.dynamic_fraction = {str(target_name)}" + ';\n'
 
         recurse(left, right, threshold, features, 0, 0)
 

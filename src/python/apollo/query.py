@@ -86,13 +86,20 @@ def getTrainingData(SOS, sos_host, sos_port, row_limit=0):
     names_start = time.time()
     region_name_list, col_names = SOS.query(sql_string, sos_host, sos_port)
     names_elapsed = time.time() - names_start
-    log(2, "Apollo::Region list (" + str(len(region_name_list))\
-                + " x " + str(len(col_names)) + ") retrieved in " + str(names_elapsed)\
-                + " seconds.")
-    region_names = []
-    for nm in region_name_list:
-        region_names.append(str(nm[0]))
+    log(
+        2,
+        (
+            (
+                (f"Apollo::Region list ({len(region_name_list)}" + " x ")
+                + str(len(col_names))
+                + ") retrieved in "
+            )
+            + str(names_elapsed)
+            + " seconds."
+        ),
+    )
 
+    region_names = [str(nm[0]) for nm in region_name_list]
     ###
     #
     #  Now get the full training set:
@@ -128,22 +135,28 @@ def getTrainingData(SOS, sos_host, sos_port, row_limit=0):
     #       )
     #       """
 
-    if (row_limit < 1):
-        sql_string += ";"
-    else:
-        sql_string += "LIMIT " + str(row_limit) + ";"
-
+    sql_string += ";" if (row_limit < 1) else f"LIMIT {str(row_limit)};"
     view_start = time.time()
     results, col_names = SOS.query(sql_string, sos_host, sos_port)
     view_elapsed = time.time() - view_start
-    log(2, "viewApollo data (" + str(len(results))\
-                    + " x " + str(len(col_names)) + ") retrieved in " + str(names_elapsed)\
-                    + " seconds.")
+    log(
+        2,
+        (
+            (
+                (f"viewApollo data ({len(results)}" + " x ")
+                + str(len(col_names))
+                + ") retrieved in "
+            )
+            + str(names_elapsed)
+            + " seconds."
+        ),
+    )
+
 
     convert_start = time.time()
     data = pd.DataFrame.from_records(results, columns=col_names)
     convert_elapsed = time.time() - convert_start
-    log(2, "Converted to DataFrame in " + str(convert_elapsed) + " seconds.")
+    log(2, f"Converted to DataFrame in {str(convert_elapsed)} seconds.")
 
 
     return data, region_names
@@ -161,7 +174,7 @@ def wipeAllExistingData(SOS, sos_host, sos_port):
 
 def wipeTrainingData(SOS, sos_host, sos_port, prior_frame_max):
     sql_string =  "DELETE FROM tblVals "
-    sql_string += "WHERE tblVals.frame < " + str(prior_frame_max) + ";"
+    sql_string += f"WHERE tblVals.frame < {str(prior_frame_max)};"
     region_names, col_names = SOS.query(sql_string, sos_host, sos_port)
     return
 
@@ -173,10 +186,7 @@ def checkLatestFrameUsingSQL(SOS, sos_host, sos_port, prior_frame_max):
     if len(results) < 1:
         return 0
     else:
-        if results[0][0] == "NULL":
-            return 0
-        else:
-            return int(results[0][0])
+        return 0 if results[0][0] == "NULL" else int(results[0][0])
 
 def waitForMoreRowsUsingSQL(SOS, sos_host, sos_port, prior_frame_max):
     max_frame = checkLatestFrameUsingSQL(SOS, sos_host, sos_port, prior_frame_max)

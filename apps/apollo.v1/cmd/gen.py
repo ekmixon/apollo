@@ -94,9 +94,9 @@ def grab_tree(app_data, instruction_data, kind, features, interactive=True, keep
     features = adf.get_feature_list(X)
     pipeline.fit(X,y)
 
-    model = CodeGenerator(kind).get_code(pipeline.steps[-1][1], features,
-                             labelencoder.get_labels())
-    return model
+    return CodeGenerator(kind).get_code(
+        pipeline.steps[-1][1], features, labelencoder.get_labels()
+    )
 
 
 def gen(parser, args):

@@ -17,7 +17,7 @@ def main():
     subenv = os.environ.copy()
     subenv['APOLLO_TRACE_CSV'] = '1'
     subenv['APOLLO_RETRAIN_ENABLE'] = '0'
-    for i in range(0, args.npolicies):
+    for i in range(args.npolicies):
         subenv['APOLLO_INIT_MODEL'] = 'Static,%d'%(i)
         subprocess.run(args.exe, shell=True, check=True, env=subenv)
 

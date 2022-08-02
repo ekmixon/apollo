@@ -62,5 +62,4 @@ import apollo.utils
 
 
 def analyzePerformance(log, data):
-    package_of_models = {}
-    return package_of_models
+    return {}

@@ -3,9 +3,9 @@ from __future__ import print_function
 
 def printstuff(fun):
     def fun_that_prints(*args, **kwargs):
-        print("calling %s" % fun.__name__)
+        print(f"calling {fun.__name__}")
         fun(*args, **kwargs)
-        print("done with %s." % fun.__name__)
+        print(f"done with {fun.__name__}.")
 
     return fun_that_prints
 

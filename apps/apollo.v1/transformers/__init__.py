@@ -13,7 +13,10 @@ from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
 class DataframePipeline():
     def __init__(self, steps):
         self.names, self.transformers = zip(*steps)
-        logging.info('Creating DataframePipeline with steps: [%s]', ', '.join(s for s in self.names))
+        logging.info(
+            'Creating DataframePipeline with steps: [%s]', ', '.join(self.names)
+        )
+
         self.steps = list(steps)
         self.X = {}
 
@@ -24,7 +27,7 @@ class DataframePipeline():
         for name, transform in self.steps:
             logging.info('Applying %s', name)
             self.X[name] = Xt
-            if 'y' == name:
+            if name == 'y':
                 y = transform.transform(Xt)
             else:
                 Xt = transform.transform(Xt)
@@ -70,7 +73,7 @@ class AutoDataFrameMapper(TransformerMixin):
         # build up list of (column, prepprocessing) tuples
         # - numerical columns are scaled, string columns are encoded
         #args = [([x for x in numerical_features], StandardScaler())]
-        args = [([x for x in numerical_features], None)]
+        args = [(list(numerical_features), None)]
         for x in categorical_features:
             self.encoders_[x] = LabelEncoder()
             args.append(([x], self.encoders_[x]))
@@ -106,7 +109,7 @@ class FeatureDropper(TransformerMixin):
         return self
 
     def transform(self, X, **transform_params):
-        columns = transform_params.get('columns', None)
+        columns = transform_params.get('columns')
         if self.cols:
             columns = self.cols
 
@@ -257,7 +260,7 @@ class ReorderCols(TransformerMixin):
 class SplitPolicies():
     def demunge_name(self, name):
         policy_regex = re.compile('[a-z]+_[a-z]+')
-        return policy_regex.search(name).group(0).upper()
+        return policy_regex.search(name)[0].upper()
 
     def fit(self, X, y=None, **fit_params):
         return self

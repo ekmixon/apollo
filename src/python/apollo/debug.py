@@ -51,7 +51,7 @@ import apollo.utils
 def log(level, msg):
     if (level <= VERBOSE):
         indent = "    " * level
-        print("== CONTROLLER: " + indent + msg)
+        print(f"== CONTROLLER: {indent}{msg}")
     return
 
 

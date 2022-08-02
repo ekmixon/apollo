@@ -92,11 +92,47 @@ def getTrainingData(sos_host, sos_port, row_limit):
             ) WHERE  cali_event_end IS NOT NULL;
     """
 
-    print ">>>>> Retrieving list of unique loops being measured."
-    region_names, col_names = sos.query(sql_string, sos_host, sos_port) 
-    print ">>>>> Loop name list received:"
+    # Drive an outer loop that grabs the list of unique loop names
+    sql_string = """
+        SELECT DISTINCT loop FROM (
+            SELECT
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "cali.event.end"
+                                  THEN tblVals.val END) AS "cali_event_end", 
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "loop"
+                                  THEN tblVals.val END) AS "loop" 
+            FROM   tblPubs 
+                  LEFT OUTER JOIN tblData 
+                               ON tblPubs.guid = tblData.pub_guid 
+                  LEFT OUTER JOIN tblVals 
+                               ON tblData.guid = tblVals.guid 
+            GROUP BY
+                tblVals.meta_relation_id,
+                tblPubs.guid
+            ) WHERE  cali_event_end IS NOT NULL;
+    """
+
+    region_names, col_names = sos.query(sql_string, sos_host, sos_port)
+    # Drive an outer loop that grabs the list of unique loop names
+    sql_string = """
+        SELECT DISTINCT loop FROM (
+            SELECT
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "cali.event.end"
+                                  THEN tblVals.val END) AS "cali_event_end", 
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "loop"
+                                  THEN tblVals.val END) AS "loop" 
+            FROM   tblPubs 
+                  LEFT OUTER JOIN tblData 
+                               ON tblPubs.guid = tblData.pub_guid 
+                  LEFT OUTER JOIN tblVals 
+                               ON tblData.guid = tblVals.guid 
+            GROUP BY
+                tblVals.meta_relation_id,
+                tblPubs.guid
+            ) WHERE  cali_event_end IS NOT NULL;
+    """
+
     tablePrint(region_names)
-    
+
 
     sql_string = """
         SELECT * FROM (
@@ -131,21 +167,52 @@ def getTrainingData(sos_host, sos_port, row_limit):
             loop
     """
 
-    if (row_limit < 1):
-        sql_string += ";"
-    else:
-        sql_string += "LIMIT " + str(row_limit) + ";"
+    sql_string += ";" if (row_limit < 1) else f"LIMIT {str(row_limit)};"
+    # Drive an outer loop that grabs the list of unique loop names
+    sql_string = """
+        SELECT DISTINCT loop FROM (
+            SELECT
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "cali.event.end"
+                                  THEN tblVals.val END) AS "cali_event_end", 
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "loop"
+                                  THEN tblVals.val END) AS "loop" 
+            FROM   tblPubs 
+                  LEFT OUTER JOIN tblData 
+                               ON tblPubs.guid = tblData.pub_guid 
+                  LEFT OUTER JOIN tblVals 
+                               ON tblData.guid = tblVals.guid 
+            GROUP BY
+                tblVals.meta_relation_id,
+                tblPubs.guid
+            ) WHERE  cali_event_end IS NOT NULL;
+    """
 
-    print ">>>>> Sending a query for training data..."
     #print "      ----------"
     #print sql_string.translate(None, '\n')
     #print "      ----------"
     results, col_names = sos.query(sql_string, sos_host, sos_port)
     data = pd.DataFrame.from_records(results, columns=col_names)
-  
 
 
-    print ">>>>> Received training data from SOS..."
+
+    # Drive an outer loop that grabs the list of unique loop names
+    sql_string = """
+        SELECT DISTINCT loop FROM (
+            SELECT
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "cali.event.end"
+                                  THEN tblVals.val END) AS "cali_event_end", 
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "loop"
+                                  THEN tblVals.val END) AS "loop" 
+            FROM   tblPubs 
+                  LEFT OUTER JOIN tblData 
+                               ON tblPubs.guid = tblData.pub_guid 
+                  LEFT OUTER JOIN tblVals 
+                               ON tblData.guid = tblVals.guid 
+            GROUP BY
+                tblVals.meta_relation_id,
+                tblPubs.guid
+            ) WHERE  cali_event_end IS NOT NULL;
+    """
 
     return data, region_names
 
@@ -252,19 +319,19 @@ from sklearn.tree import _tree
 
 def tree_to_json(decision_tree, feature_names=None):
     from warnings import warn
- 
+
     js = ""
- 
+
     def node_to_str(tree, node_id, criterion):
         if not isinstance(criterion, skl.tree.tree.six.string_types):
             criterion = "impurity"
- 
+
         value = tree.value[node_id]
         if tree.n_outputs == 1:
             value = value[0, :]
- 
+
         jsonValue = ', '.join([str(x) for x in value])
- 
+
         if tree.children_left[node_id] == skl.tree._tree.TREE_LEAF:
             return '"id": "%s", "criterion": "%s", "impurity": "%s", "samples": "%s", "value": [%s]' \
                          % (node_id, 
@@ -272,39 +339,39 @@ def tree_to_json(decision_tree, feature_names=None):
                                 tree.impurity[node_id],
                                 tree.n_node_samples[node_id],
                                 jsonValue)
+        feature = (
+            feature_names[tree.feature[node_id]]
+            if feature_names is not None
+            else tree.feature[node_id]
+        )
+
+        if "=" in feature:
+            ruleType = "="
+            ruleValue = "false"
         else:
-            if feature_names is not None:
-                feature = feature_names[tree.feature[node_id]]
-            else:
-                feature = tree.feature[node_id]
- 
-            if "=" in feature:
-                ruleType = "="
-                ruleValue = "false"
-            else:
-                ruleType = "<="
-                ruleValue = "%.4f" % tree.threshold[node_id]
- 
-            return '"id": "%s", "rule": "%s %s %s", "%s": "%s", "samples": "%s"' \
-                         % (node_id, 
-                                feature,
-                                ruleType,
-                                ruleValue,
-                                criterion,
-                                tree.impurity[node_id],
-                                tree.n_node_samples[node_id])
- 
+            ruleType = "<="
+            ruleValue = "%.4f" % tree.threshold[node_id]
+
+        return '"id": "%s", "rule": "%s %s %s", "%s": "%s", "samples": "%s"' \
+                     % (node_id, 
+                            feature,
+                            ruleType,
+                            ruleValue,
+                            criterion,
+                            tree.impurity[node_id],
+                            tree.n_node_samples[node_id])
+
     def recurse(tree, node_id, criterion, parent=None, depth=0):
         tabs = "    " * depth
         js = ""
- 
+
         left_child = tree.children_left[node_id]
         right_child = tree.children_right[node_id]
- 
+
         js = js + "\n" + \
                  tabs + "{\n" + \
                  tabs + "    " + node_to_str(tree, node_id, criterion)
- 
+
         if left_child != skl.tree._tree.TREE_LEAF:
             js = js + ",\n" + \
                      tabs + '    "left": ' + \
@@ -319,17 +386,17 @@ def tree_to_json(decision_tree, feature_names=None):
                                      criterion=criterion, \
                                      parent=node_id,
                                      depth=depth + 1)
- 
+
         js = js + tabs + "\n" + \
                  tabs + "}"
- 
+
         return js
- 
+
     if isinstance(decision_tree, skl.tree.tree.Tree):
-        js = js + recurse(decision_tree, 0, criterion="impurity")
+        js += recurse(decision_tree, 0, criterion="impurity")
     else:
         js = js + recurse(decision_tree.tree_, 0, criterion=decision_tree.criterion)
- 
+
     return js
 
 

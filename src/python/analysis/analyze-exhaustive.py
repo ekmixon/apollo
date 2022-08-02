@@ -22,7 +22,7 @@ def main():
     # Outer index rank, inner index static policy
     print('=== Reading csv files...')
     data_map= {}
-    globlist = glob.glob('%s/trace*.csv'%(args.dir))
+    globlist = glob.glob(f'{args.dir}/trace*.csv')
     nfiles = len(globlist)
     for i, f in enumerate(globlist):
         print('\r=== Reading %-64s %06d/%06d'%(f, i+1, nfiles), flush=True, end='')

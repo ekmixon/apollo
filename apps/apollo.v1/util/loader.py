@@ -5,9 +5,7 @@ from collections import defaultdict
 
 
 def check_int(s):
-    if s[0] is ('-', '+'):
-        return s[1:].isdigit()
-    return s.isdigit()
+    return s[1:].isdigit() if s[0] is ('-', '+') else s.isdigit()
 
 
 class Loader(object):
@@ -31,11 +29,8 @@ class PandasInstructionLoader(Loader):
     def __init__(self, filename):
         imaps = []
         for line in open(filename):
-            imap = {}
-
             loop = line.split(",")[0].split(':')[1].lstrip()
-            imap['loop'] = str(loop)
-
+            imap = {'loop': str(loop)}
             for instructioncount in line.split(",")[1:]:
                 instruction, count = instructioncount.split(":")
                 imap[instruction] = int(count)

@@ -9,30 +9,29 @@ def parse_node(node):
         #print('map keys ', keys)
         dot = '{\n'
         for k in keys:
-            dot += '%s: '%(k)
+            dot += f'{k}: '
             dot += parse_node(node.getNode(k))
             dot += ',\n'
         dot += ' }\n'
     elif node.isSeq():
         #print('seq size ', node.size())
         dot = '[ '
-        for k in range(0, node.size()):
+        for k in range(node.size()):
             if k>0:
                 dot += ', '
             dot += parse_node(node.at(k))
         dot += ' ]\n'
+    elif node.isInt():
+        #print('int val ', int(node.real()))
+        dot = '%d'%(int(node.real()))
+    elif node.isReal():
+        #print('real val ', node.real())
+        dot = '%f'%(node.real())
+    elif node.isString():
+        #print('string val ', node.string())
+        dot = '\"%s\"'%(node.real())
     else:
-        if node.isInt():
-            #print('int val ', int(node.real()))
-            dot = '%d'%(int(node.real()))
-        elif node.isReal():
-            #print('real val ', node.real())
-            dot = '%f'%(node.real())
-        elif node.isString():
-            #print('string val ', node.string())
-            dot = '\"%s\"'%(node.real())
-        else:
-            assert(False)
+        assert(False)
 
     return dot
 
@@ -42,7 +41,7 @@ def parse_tree(tid, tree):
     treenodes = tree.getNode('nodes')
     assert(treenodes.isSeq())
     # Create nodes.
-    for i in range(0, treenodes.size()):
+    for i in range(treenodes.size()):
         node = treenodes.at(i)
         depth = int( node.getNode('depth').real() )
         dot += 'tree_%d_d_%d_n_%d [ label=\"' % (tid, depth, i)
@@ -70,20 +69,19 @@ def parse_tree(tid, tree):
     return dot
 
 def parse(node):
-    dot = 'root [ shape=box, label=\"'
     assert(node.isMap())
     keys = node.keys()
     keys.remove('trees')
-    dot += '{\n'
+    dot = 'root [ shape=box, label=\"' + '{\n'
     for k in keys:
-        dot += '%s: '%(k)
+        dot += f'{k}: '
         dot += parse_node(node.getNode(k))
         dot += ',\n'
     dot += ' }\n'
 
     dot += '\"];\n'
 
-    for r in range(0, node.getNode('trees').size()):
+    for r in range(node.getNode('trees').size()):
         dot += parse_tree(r, node.getNode('trees').at(r))
         dot += 'root -> tree_%d_d_0_n_0;\n'%(r)
     return dot

@@ -5,16 +5,16 @@ import numpy as np
 
 def df_to_unique_csv(df, file_prefix):
     now = datetime.datetime.now()
-    d = '%s-%s-%s' % (now.year, now.month, now.day)
+    d = f'{now.year}-{now.month}-{now.day}'
 
     if not os.path.exists(d):
         os.makedirs(d)
 
     i = 0
-    while os.path.exists("%s/%s.%s.csv" % (d, file_prefix, i)):
+    while os.path.exists(f"{d}/{file_prefix}.{i}.csv"):
         i += 1
 
-    df.to_csv(path_or_buf='%s/%s.%s.csv' % (d, file_prefix, i), index=False)
+    df.to_csv(path_or_buf=f'{d}/{file_prefix}.{i}.csv', index=False)
 
 
 def get_train_test_inds(y,train_proportion=0.7):

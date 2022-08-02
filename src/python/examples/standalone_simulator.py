@@ -257,7 +257,7 @@ def project_model_over_trace():
     total_count_of_fastest = 0
     print("\nPolicy recommendation count               |   Flush entries being fastest:")
     print("------------------------------------------+------------------------------------------")
-    for i in range(0, 20):
+    for i in range(20):
         print(" [%2d]: %8d  %21s    |  [%2d]: %8d  %21s" % (
             i, policy_recommended[i],
             progressBar(policy_recommended[i], trace_pos_total, 21, fill='#'),
@@ -304,11 +304,10 @@ def project_model_over_trace():
 def progressBar(amount, total, length, fill='='):
     if amount >= total:
         return fill * length
-    if length < 4: length = 4
+    length = max(length, 4)
     fillLen = int(length * amount // total)
     emptyLen = length - 1 - fillLen
-    bar = (fill * fillLen) + fill + (" " * emptyLen)
-    return bar
+    return (fill * fillLen) + fill + (" " * emptyLen)
 
 
 def tree_to_data(decision_tree, feature_names=None, name_swap=None, y=None):
@@ -329,25 +328,26 @@ def tree_to_data(decision_tree, feature_names=None, name_swap=None, y=None):
                 "value": list(value),
                 "class": decision_tree.classes_[np.argmax(value)]
             }
+        feature = (
+            feature_names[tree.feature[node_id]]
+            if feature_names is not None
+            else tree.feature[node_id]
+        )
+
+        if "=" in feature:
+            ruleType = "="
+            ruleValue = "false"
         else:
-            if feature_names is not None:
-                feature = feature_names[tree.feature[node_id]]
-            else:
-                feature = tree.feature[node_id]
+            ruleType = "<="
+            ruleValue = "%.4f" % tree.threshold[node_id]
 
-            if "=" in feature:
-                ruleType = "="
-                ruleValue = "false"
-            else:
-                ruleType = "<="
-                ruleValue = "%.4f" % tree.threshold[node_id]
+        return {
+            "id": node_id,
+            "rule": f"{feature} {ruleType} {ruleValue}",
+            criterion: tree.impurity[node_id],
+            "samples": tree.n_node_samples[node_id],
+        }
 
-            return {
-                "id": node_id,
-                "rule": "%s %s %s" % (feature, ruleType, ruleValue),
-                criterion: tree.impurity[node_id],
-                "samples": tree.n_node_samples[node_id],
-            }
 
     def recurse(tree, node_id, criterion, parent=None, depth=0):
         left_child = tree.children_left[node_id]
@@ -387,22 +387,20 @@ def tree_to_simple_str(decision_tree, feature_names=None, name_swap=None, y=None
             return {
                 "class": decision_tree.classes_[np.argmax(value)]
             }
+        feature = (
+            feature_names[tree.feature[node_id]]
+            if feature_names is not None
+            else tree.feature[node_id]
+        )
+
+        if "=" in feature:
+            ruleType = "="
+            ruleValue = "false"
         else:
-            if feature_names is not None:
-                feature = feature_names[tree.feature[node_id]]
-            else:
-                feature = tree.feature[node_id]
+            ruleType = "<="
+            ruleValue = "%.4f" % tree.threshold[node_id]
 
-            if "=" in feature:
-                ruleType = "="
-                ruleValue = "false"
-            else:
-                ruleType = "<="
-                ruleValue = "%.4f" % tree.threshold[node_id]
-
-            return {
-                "rule": "%s %s %s" % (feature, ruleType, ruleValue),
-            }
+        return {"rule": f"{feature} {ruleType} {ruleValue}"}
 
     def recurse(tree, node_id, criterion, parent=None, depth=0):
         left_child = tree.children_left[node_id]

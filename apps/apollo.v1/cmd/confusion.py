@@ -26,10 +26,7 @@ CLASSIFIERS = [
     'DecisionTreeClassifier',
 ]
 
-clfs = []
-
-for c in CLASSIFIERS:
-    clfs.append(globals()[c]())
+clfs = [globals()[c]() for c in CLASSIFIERS]
 
 
 def setup_parser(subparser):

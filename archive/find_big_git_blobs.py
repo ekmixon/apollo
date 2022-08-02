@@ -54,16 +54,13 @@ def main():
 	printOutBlobs(blobs)
 
 def getTopBlobs(count, sizeLimit):
-	sortColumn = 4
-	
-	if sortByOnDiskSize:
-		sortColumn = 3
+	sortColumn = 3 if sortByOnDiskSize else 4
+	verifyPack = f"git verify-pack -v `git rev-parse --git-dir`/objects/pack/pack-*.idx | grep blob | sort -k{sortColumn}nr"
 
-	verifyPack = "git verify-pack -v `git rev-parse --git-dir`/objects/pack/pack-*.idx | grep blob | sort -k{}nr".format(sortColumn)
 	output = check_output(verifyPack, shell=True).split("\n")[:-1]
 
-	blobs = dict()
-	compareBlob = Blob("a b {} {} c".format(sizeLimit, sizeLimit)) # use __lt__ to do the appropriate comparison
+	blobs = {}
+	compareBlob = Blob(f"a b {sizeLimit} {sizeLimit} c")
 
 	for objLine in output:
 		blob = Blob(objLine)
@@ -149,7 +146,7 @@ class Blob(object):
 		self.sha1, self.size, self.packedSize = cols[0], int(cols[2]), int(cols[3])
 
 	def __repr__(self):
-		return '{} - {} - {} - {}'.format(self.sha1, self.size, self.packedSize, self.path)
+		return f'{self.sha1} - {self.size} - {self.packedSize} - {self.path}'
 
 	def __lt__(self, other):
 		if (sortByOnDiskSize):
@@ -158,7 +155,7 @@ class Blob(object):
 			return self.packedSize < other.packedSize
 
 	def csvLine(self):
-		return "{},{},{},{}".format(self.size/1024, self.packedSize/1024, self.sha1, self.path)
+		return f"{self.size / 1024},{self.packedSize / 1024},{self.sha1},{self.path}"
 
 
 # Default function is main()

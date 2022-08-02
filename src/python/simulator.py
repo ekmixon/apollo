@@ -266,7 +266,7 @@ def project_model_over_trace():
                 print("Because there were model key errors, the following 'synthetic times' were used:\n")
                 print("policy  ( avg_per_elem  * total_num_elems ) == synthetic_time")
                 print("---------------------------------------------------------------------------------------")
-                for i in range(0, 20):
+                for i in range(20):
                     st_count, st_avg_time_per_elem, st_elem_total, st_time_total, st_trace_time = syntimes[i]
                     if st_count > 0:
                         print(" [%2d]   ( %4.16f  *  %-8d ) == %4.12f    (%4.12f trace)" % (
@@ -295,7 +295,7 @@ def project_model_over_trace():
 
 
 
-    if wait_for_pyplot_process == True:
+    if wait_for_pyplot_process:
         print("Waiting for PyPlot subprocess to complete...")
         pyplot_process.join()
         print("")
@@ -313,7 +313,7 @@ def print_recommendations(test_name, policy_recommended, policy_fastest, best):
     trace_pos_total = len(data['apollo.trace'].index)
     print("\nPolicy recommendation count               |   Flush entries being fastest:")
     print("------------------------------------------+------------------------------------------")
-    for i in range(0, 20):
+    for i in range(20):
         print(" [%2d]: %8d  %21s    |  [%2d]: %8d  %21s" % (
             i, policy_recommended[i],
             progressBar(policy_recommended[i], trace_pos_total, 21, fill='#'),
@@ -381,9 +381,7 @@ def define_all_tests(flush_key):
 
 def generate_models_at_depths(experiment_name, training_data, tree_depths):
     models = {}
-    m_count = 0
-    for depth in tree_depths:
-        m_count += 1
+    for m_count, depth in enumerate(tree_depths, start=1):
         mt_start = time.time()
         sys.stdout.write('\t%s @ depth=%d  [%d/%d]   \t' % (experiment_name,
             depth, m_count, len(tree_depths)))
@@ -536,11 +534,10 @@ def compute_lookup_dictionaries():
 def progressBar(amount, total, length, fill='='):
     if amount >= total:
         return fill * length
-    if length < 4: length = 4
+    length = max(length, 4)
     fillLen = int(length * amount // total)
     emptyLen = length - 1 - fillLen
-    bar = (fill * fillLen) + fill + (" " * emptyLen)
-    return bar
+    return (fill * fillLen) + fill + (" " * emptyLen)
 
 
 def hide_traceback(exc_tuple=None, filename=None, tb_offset=None,
